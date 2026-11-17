@@ -19,11 +19,14 @@ from .config import settings
 app = typer.Typer(add_completion=False, help="ClipForge — YouTube → viral clips → post from your browser.")
 
 
-@app.callback()
-def _root(version: bool = typer.Option(False, "--version", help="Show version and exit")):
+@app.callback(invoke_without_command=True)
+def _root(ctx: typer.Context,
+          version: bool = typer.Option(False, "--version", help="Show version and exit")):
     if version:
         typer.echo(f"clipforge {__version__}")
         raise typer.Exit()
+    if ctx.invoked_subcommand is None:
+        typer.echo(ctx.get_help())
 
 
 @app.command()

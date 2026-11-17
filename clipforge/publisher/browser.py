@@ -136,8 +136,14 @@ def _run(state: dict, platform: str, video_path: Path, caption: str, title: str,
                 _set(state, "closed", "Browser closed.")
     except Exception as exc:  # noqa: BLE001
         traceback.print_exc()
-        state["error"] = str(exc)
-        _set(state, "error", f"{type(exc).__name__}: {exc}")
+        msg = str(exc)
+        if "Executable doesn't exist" in msg or "playwright install" in msg:
+            msg = ("Chromium for Playwright is not installed. Run:  playwright install chromium  "
+                   "(or set CLIPFORGE_BROWSER_CHANNEL=chrome to use your installed Google Chrome).")
+        elif "Missing X server" in msg or "cannot open display" in msg.lower():
+            msg = "No display available — browser publishing needs a desktop session (not SSH/headless/Colab)."
+        state["error"] = msg
+        _set(state, "error", msg)
 
 
 # ----------------------------------------------------------------------------
