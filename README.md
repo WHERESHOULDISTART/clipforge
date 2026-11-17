@@ -115,7 +115,7 @@ clipforge jobs                                                   # list past job
 <a id="how-i-built-it"></a>
 ## 🛠️ How I built it — step by step
 
-I'm [@WHERESHOULDISTART](https://github.com/WHERESHOULDISTART). I built ClipForge in two days (16–17 November 2026) together with **Claude**, Anthropic's AI assistant: I described what I wanted and made the decisions, Claude wrote and tested the code. Here's exactly how it went.
+I'm [@WHERESHOULDISTART](https://github.com/WHERESHOULDISTART). I built ClipForge over two days (16–17 November 2026) together with **Claude**, Anthropic's AI assistant: I described what I wanted and made the decisions, Claude wrote and tested the code. Here's exactly how it went.
 
 **Step 1 — The idea.** I wanted a free, open-source version of the paid "AI clipping" tools: paste a YouTube link, get the best moments as vertical clips with trendy captions. I asked Claude to help me build it and publish it on GitHub.
 
@@ -143,7 +143,16 @@ After those fixes a full run on a real video — download, transcription on the 
 
 **Step 9 — Writing this guide**, so anyone can use it, step by step.
 
-**What I learned:** test on real videos early (my generated test video hid most of these bugs), check what platform APIs actually allow before building on them, and a free Colab notebook is the easiest way to let anyone try a project without installing anything.
+**Step 10 — My own first try failed, and that made it better.** When I ran the notebook myself, it sat there for minutes and never made a clip. Claude reproduced it: Google had given me a Colab machine **without a GPU** (the free GPU time runs out), and on those machines step 1 crashed after installing silently. Fixing that turned into a round of "what would a real user hit?":
+1. No GPU → no more crash; a clear ⚠️ warning, a faster speech model, and it still finishes.
+2. Pasting a stream that's **still live** used to download forever → now it tells you to wait for the replay.
+3. Hours-long stream VODs → a `minutes_to_use` setting (default: the first hour) so it finishes in minutes.
+4. YouTube blocking the download → plain-English errors and an **upload your own video** option.
+5. Long silent waits → a timestamped progress line every few seconds, including each clip's render %.
+
+I tested the fix on the same kind of no-GPU machine that failed for me: three captioned clips in about 7 minutes (about 1 minute with a GPU).
+
+**What I learned:** test on real videos early (my generated test video hid most of these bugs), test on the slowest setup people will actually get (a free machine with no GPU), check what platform APIs actually allow before building on them, and a free Colab notebook is the easiest way to let anyone try a project without installing anything.
 
 ---
 
