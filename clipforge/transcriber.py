@@ -89,7 +89,8 @@ def _run_whisper(audio: np.ndarray, device: str, compute: str, language: str | N
         ]
         segments.append(Segment(start=float(seg.start), end=float(seg.end), text=seg.text.strip(), words=words))
         if progress:
-            progress(min(seg.end / total, 1.0), f"Transcribing {seg.end / total:.0%} ({device})")
+            progress(min(seg.end / total, 1.0),
+                     f"Transcribing {seg.end / total:.0%} ({seg.end / 60:.0f}/{total / 60:.0f} min, {device.upper()})")
     return segments, info
 
 
@@ -109,14 +110,20 @@ def load_audio(path: Path, sample_rate: int = 16000) -> np.ndarray:
 
 
 def transcribe(video_path: Path, cache_path: Path | None = None, progress=None,
-               language: str | None = None) -> Transcript:
-    cache_path = cache_path or video_path.with_suffix(".transcript.json")
+               language: str | None = None, max_seconds: float | None = None) -> Transcript:
+    tag = f".first{int(max_seconds)}s" if max_seconds else ""
+    legacy = video_path.with_suffix(".transcript.json")  # pre-0.1.1 / hand-made transcripts
+    if cache_path is None and not max_seconds and legacy.exists():
+        cache_path = legacy
+    cache_path = cache_path or video_path.with_suffix(f"{tag}.{settings.whisper_model}.transcript.json")
     if cache_path.exists():
         return Transcript.model_validate_json(cache_path.read_text())
 
     if progress:
         progress(0.0, "Decoding audio")
     audio = load_audio(video_path)
+    if max_seconds:
+        audio = audio[: int(max_seconds * 16000)]
     if audio.size == 0:
         raise RuntimeError("This video has no audio track — nothing to transcribe.")
 

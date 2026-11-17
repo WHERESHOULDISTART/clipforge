@@ -31,6 +31,7 @@ class Job(BaseModel):
     clip_count: int
     reframe: str | None = None
     language: str | None = None
+    max_minutes: float | None = None  # only use the first N minutes of long videos
     status: str = "queued"
     progress: float = 0.0
     message: str = ""
@@ -66,10 +67,12 @@ class Job(BaseModel):
 
 
 def new_job(source: str, style: str | None = None, clip_count: int | None = None,
-            reframe: str | None = None, language: str | None = None) -> Job:
+            reframe: str | None = None, language: str | None = None,
+            max_minutes: float | None = None) -> Job:
     settings.ensure_dirs()
     job = Job(id=uuid.uuid4().hex[:10], source=source.strip(), style=style or settings.default_style,
-              clip_count=clip_count or settings.default_clip_count, reframe=reframe, language=language)
+              clip_count=clip_count or settings.default_clip_count, reframe=reframe, language=language,
+              max_minutes=max_minutes or None)
     job.save()
     return job
 
@@ -77,14 +80,21 @@ def new_job(source: str, style: str | None = None, clip_count: int | None = None
 def run_job(job: Job, on_update: Callable[[Job], None] | None = None) -> Job:
     """Run the full pipeline synchronously, updating `job` as it goes."""
 
+    last_save = {"t": 0.0}
+
     def update(status: str | None = None, progress: float | None = None, message: str | None = None):
+        changed_status = bool(status) and status != job.status
         if status:
             job.status = status
         if progress is not None:
             job.progress = round(float(progress), 3)
         if message is not None:
             job.message = message
-        job.save()
+        now = time.time()
+        # Progress callbacks can fire many times a second; persist at most ~2x/s.
+        if changed_status or status in ("done", "error") or now - last_save["t"] >= 0.5:
+            last_save["t"] = now
+            job.save()
         if on_update:
             on_update(job)
 
@@ -97,13 +107,18 @@ def run_job(job: Job, on_update: Callable[[Job], None] | None = None) -> Job:
         return lambda frac, msg: update(progress=lo + (hi - lo) * max(0.0, min(frac, 1.0)), message=msg)
 
     try:
+        max_s = float(job.max_minutes) * 60 if job.max_minutes else None
         update("downloading", 0.0, "Fetching video")
-        video = downloader.download(job.source, progress=stage_cb("downloading"))
+        video = downloader.download(job.source, progress=stage_cb("downloading"), max_seconds=max_s)
         job.video = video
-        update(message=f"Got: {video.title}")
+        if max_s and video.duration <= max_s + 30:
+            max_s = None  # already short enough; use all of it
+        mins = video.duration / 60
+        update(message=f"Got: {video.title} ({mins:.0f} min)")
 
         update("transcribing", weights["transcribing"][0], "Loading Whisper model")
-        transcript = transcriber.transcribe(video.path, progress=stage_cb("transcribing"), language=job.language)
+        transcript = transcriber.transcribe(video.path, progress=stage_cb("transcribing"),
+                                            language=job.language, max_seconds=max_s)
         if not transcript.words:
             raise RuntimeError(
                 "No speech detected in this video — ClipForge needs talking (podcasts, interviews, "
