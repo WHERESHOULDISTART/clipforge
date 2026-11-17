@@ -84,7 +84,7 @@ def render_clip(source: Path, highlight: Highlight, transcript: Transcript, styl
     duration = highlight.end - highlight.start
     def build_cmd(gpu: bool) -> list[str]:
         return [
-            "ffmpeg", "-y", "-v", "error",
+            "ffmpeg", "-y", "-v", "error", "-nostats", "-progress", "pipe:1",
             "-ss", f"{highlight.start:.3f}", "-i", str(source), "-t", f"{duration:.3f}",
             "-vf", vf,
             *_video_codec_args(gpu), "-r", "30",
@@ -93,16 +93,36 @@ def render_clip(source: Path, highlight: Highlight, transcript: Transcript, styl
             str(video_out),
         ]
 
+    def run(cmd: list[str]) -> tuple[int, str]:
+        """Run ffmpeg, reporting % done for this clip from its -progress output."""
+        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        import threading
+
+        err: list[str] = []
+        t = threading.Thread(target=lambda: err.append(proc.stderr.read()), daemon=True)
+        t.start()
+        for line in proc.stdout:
+            if progress and line.startswith("out_time_us="):
+                try:
+                    done = int(line.split("=", 1)[1]) / 1e6
+                except ValueError:
+                    continue
+                if duration > 0:
+                    progress(min(done / duration, 1.0), f"Rendering clip {index}: {min(done / duration, 1.0):.0%}")
+        proc.wait()
+        t.join(timeout=5)
+        return proc.returncode, "".join(err)
+
     if progress:
         progress(0.0, f"Rendering clip {index}")
     use_gpu = _nvenc_available()
     cmd = build_cmd(use_gpu)
-    proc = subprocess.run(cmd, capture_output=True, text=True)
-    if proc.returncode != 0 and use_gpu:  # GPU encoder hiccup -> CPU
+    code, stderr = run(cmd)
+    if code != 0 and use_gpu:  # GPU encoder hiccup -> CPU
         cmd = build_cmd(False)
-        proc = subprocess.run(cmd, capture_output=True, text=True)
-    if proc.returncode != 0:
-        raise RuntimeError(f"ffmpeg failed for clip {index}:\n{' '.join(shlex.quote(c) for c in cmd)}\n{proc.stderr[-2000:]}")
+        code, stderr = run(cmd)
+    if code != 0:
+        raise RuntimeError(f"ffmpeg failed for clip {index}:\n{' '.join(shlex.quote(c) for c in cmd)}\n{stderr[-2000:]}")
 
     # Thumbnail ~1s in (after the hook pop), from the finished clip so captions are on it.
     subprocess.run(

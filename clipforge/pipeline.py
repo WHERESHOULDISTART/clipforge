@@ -137,7 +137,16 @@ def run_job(job: Job, on_update: Callable[[Job], None] | None = None) -> Job:
         for i, h in enumerate(highlights, start=1):
             update(status="rendering", progress=lo + (hi - lo) * (i - 1) / len(highlights),
                    message=f"Rendering clip {i}/{len(highlights)}: {h.title}")
-            clip = render_clip(video.path, h, transcript, style, out_dir, i, reframe=job.reframe)
+            span = (hi - lo) / len(highlights)
+            base = lo + span * (i - 1)
+            title = h.title[:40]
+
+            def clip_cb(frac, msg, base=base, span=span, i=i, title=title):
+                update(progress=base + span * frac,
+                       message=f"Rendering clip {i}/{len(highlights)} ({frac:.0%}): {title}")
+
+            clip = render_clip(video.path, h, transcript, style, out_dir, i, reframe=job.reframe,
+                               progress=clip_cb)
             clips.append(clip)
             job.clips = clips
             update()
