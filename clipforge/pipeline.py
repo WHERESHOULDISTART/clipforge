@@ -105,7 +105,9 @@ def run_job(job: Job, on_update: Callable[[Job], None] | None = None) -> Job:
         update("transcribing", weights["transcribing"][0], "Loading Whisper model")
         transcript = transcriber.transcribe(video.path, progress=stage_cb("transcribing"), language=job.language)
         if not transcript.words:
-            raise RuntimeError("No speech detected in this video — nothing to clip.")
+            raise RuntimeError(
+                "No speech detected in this video — ClipForge needs talking (podcasts, interviews, "
+                "vlogs, streams, lectures). Pure music or silent videos can't be captioned.")
 
         update("highlighting", weights["highlighting"][0], "Finding the best moments")
         highlights = highlighter.find_highlights(transcript, video.path, n=job.clip_count,

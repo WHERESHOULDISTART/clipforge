@@ -73,10 +73,11 @@ def _load_model(device: str, compute: str):
 _CUDA_ERRORS = ("libcublas", "libcudnn", "cuda", "cudnn", "cublas", "CUDA")
 
 
-def _run_whisper(audio: np.ndarray, device: str, compute: str, language: str | None, progress):
+def _run_whisper(audio: np.ndarray, device: str, compute: str, language: str | None, progress,
+                 vad: bool = True):
     model = _load_model(device, compute)
     segments_iter, info = model.transcribe(
-        audio, word_timestamps=True, vad_filter=True, language=language, beam_size=5,
+        audio, word_timestamps=True, vad_filter=vad, language=language, beam_size=5,
     )
     segments: list[Segment] = []
     total = float(info.duration or 0) or 1.0
@@ -130,6 +131,17 @@ def transcribe(video_path: Path, cache_path: Path | None = None, progress=None,
             segments, info = _run_whisper(audio, "cpu", "int8", language, progress)
         else:
             raise
+
+    if not any(seg.words for seg in segments):
+        # Voice-activity detection drops sung vocals and speech under loud music.
+        # Retry once over the whole track without it.
+        if progress:
+            progress(0.0, "No speech found with voice filter — retrying on the full track")
+        dev = device if device == "cpu" else device
+        try:
+            segments, info = _run_whisper(audio, dev, compute, language, progress, vad=False)
+        except (RuntimeError, OSError):
+            segments, info = _run_whisper(audio, "cpu", "int8", language, progress, vad=False)
 
     transcript = Transcript(language=info.language, duration=float(info.duration or 0), segments=segments)
     cache_path.write_text(transcript.model_dump_json(indent=1))
