@@ -35,4 +35,4 @@ clipforge = "clipforge.cli:app"
 include = ["clipforge*"]
 
 [tool.setuptools.package-data]
-clipforge = ["styles/*.json", "web/templates/*.html", "web/static/*"]
+clipforge = ["styles/*.json", "fonts/*", "web/templates/*.html", "web/static/*"]

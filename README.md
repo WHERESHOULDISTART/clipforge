@@ -2,7 +2,15 @@
 
 **Paste a YouTube link → get the most intense / funny / insightful moments as vertical clips with trendy animated captions → post them to TikTok, YouTube Shorts, Instagram, Facebook and X from your own browser.**
 
-No API keys required. No platform developer accounts. No audits. Runs on your machine.
+No API keys required. No platform developer accounts. No audits. Runs on your machine — or free in your browser.
+
+## 🚀 Try it free right now (no install)
+
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/WHERESHOULDISTART/clipforge/blob/main/notebooks/ClipForge_Colab.ipynb)
+
+**→ [Open ClipForge in Google Colab](https://colab.research.google.com/github/WHERESHOULDISTART/clipforge/blob/main/notebooks/ClipForge_Colab.ipynb)** — paste a YouTube link, pick a caption style, press run. Google's free GPU does the transcription and rendering; you download the finished clips as a zip. Works on any computer, phone browser included.
+
+Want the full dashboard with one-click **Open in TikTok →** publishing? [Install locally](#install) (free too — it's all open source, MIT).
 
 ```
 YouTube URL ──► download ──► transcribe (word timestamps) ──► find highlights (LLM or heuristic)
@@ -35,7 +43,7 @@ YouTube URL ──► download ──► transcribe (word timestamps) ──► 
 Requirements: Python 3.10+, [ffmpeg](https://ffmpeg.org/download.html) on your PATH.
 
 ```bash
-git clone https://github.com/<you>/clipforge && cd clipforge
+git clone https://github.com/WHERESHOULDISTART/clipforge && cd clipforge
 pip install -e .
 playwright install chromium          # for browser publishing
 cp .env.example .env                 # optional: add an API key, pick Whisper size
