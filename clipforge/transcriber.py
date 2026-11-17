@@ -7,7 +7,10 @@ request them. The transcript is cached next to the download as JSON.
 from __future__ import annotations
 
 import json
+import subprocess
 from pathlib import Path
+
+import numpy as np
 
 from .config import settings
 from .models import Segment, Transcript, Word
@@ -35,15 +38,36 @@ def _load_model():
     return _model_cache[key]
 
 
+def load_audio(path: Path, sample_rate: int = 16000) -> np.ndarray:
+    """Decode any media file to mono float32 PCM with ffmpeg.
+
+    We deliberately do not let faster-whisper decode via PyAV: PyAV wheels differ
+    between environments (Colab, conda, Apple Silicon) and break its decoder.
+    ffmpeg is already a hard requirement, so we use it for everything.
+    """
+    cmd = ["ffmpeg", "-v", "error", "-nostdin", "-i", str(path), "-vn",
+           "-f", "f32le", "-acodec", "pcm_f32le", "-ac", "1", "-ar", str(sample_rate), "-"]
+    proc = subprocess.run(cmd, capture_output=True)
+    if proc.returncode != 0:
+        raise RuntimeError(f"ffmpeg could not decode audio from {path.name}: {proc.stderr.decode(errors='ignore')[-500:]}")
+    return np.frombuffer(proc.stdout, dtype=np.float32).copy()
+
+
 def transcribe(video_path: Path, cache_path: Path | None = None, progress=None,
                language: str | None = None) -> Transcript:
     cache_path = cache_path or video_path.with_suffix(".transcript.json")
     if cache_path.exists():
         return Transcript.model_validate_json(cache_path.read_text())
 
+    if progress:
+        progress(0.0, "Decoding audio")
+    audio = load_audio(video_path)
+    if audio.size == 0:
+        raise RuntimeError("This video has no audio track — nothing to transcribe.")
+
     model = _load_model()
     segments_iter, info = model.transcribe(
-        str(video_path),
+        audio,
         word_timestamps=True,
         vad_filter=True,
         language=language,
