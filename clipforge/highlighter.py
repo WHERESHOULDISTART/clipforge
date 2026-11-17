@@ -208,17 +208,27 @@ def _sentences(transcript: Transcript) -> list[tuple[float, float, str, list[Wor
 
 
 def _loudness_profile(video_path: Path, duration: float, step: float = 1.0) -> list[float]:
-    """Per-second RMS loudness (0..1) using ffmpeg's astats; empty list on failure."""
+    """Per-`step`-second loudness (0..1), index i = seconds [i*step, (i+1)*step).
+
+    Decodes mono 8 kHz audio with ffmpeg and computes RMS in numpy — fast even
+    for hour-long videos. Returns [] on failure."""
     try:
-        cmd = ["ffmpeg", "-v", "error", "-i", str(video_path), "-vn", "-af",
-               f"astats=metadata=1:reset={int(step * 50)},ametadata=print:key=lavfi.astats.Overall.RMS_level:file=-",
-               "-f", "null", "-"]
-        out = subprocess.run(cmd, capture_output=True, text=True, timeout=600).stdout
-        vals = [float(m) for m in re.findall(r"RMS_level=(-?[\d.]+)", out)]
-        if not vals:
+        import numpy as np
+
+        from .transcriber import load_audio
+
+        sr = 8000
+        audio = load_audio(video_path, sample_rate=sr)
+        hop = int(sr * step)
+        n = len(audio) // hop
+        if n == 0:
             return []
-        lo, hi = min(vals), max(vals)
-        return [(v - lo) / (hi - lo + 1e-9) for v in vals]
+        frames = audio[: n * hop].reshape(n, hop)
+        rms = np.sqrt(np.mean(frames.astype(np.float64) ** 2, axis=1)) + 1e-9
+        db = 20 * np.log10(rms)
+        lo, hi = np.percentile(db, 5), np.percentile(db, 99)
+        norm = np.clip((db - lo) / (hi - lo + 1e-9), 0.0, 1.0)
+        return norm.tolist()
     except Exception:
         return []
 
@@ -248,6 +258,7 @@ def _heuristic_highlights(transcript: Transcript, video_path: Path | None, n: in
 
     # Slide a window over sentences to build candidate clips around each peak
     target = (settings.min_clip_seconds + settings.max_clip_seconds) / 2
+    top_cut = sorted(x[0] for x in scored)[int(len(scored) * 0.85)] if scored else 0.0
     cands: list[Highlight] = []
     for i, (score, s_start, s_end, s_text) in enumerate(scored):
         a, b = i, i
@@ -266,7 +277,7 @@ def _heuristic_highlights(transcript: Transcript, video_path: Path | None, n: in
         if end - start < settings.min_clip_seconds * 0.6:
             continue
         hook_text = s_text
-        mood = "intense" if ("!" in hook_text or loudness_rank(score, scored)) else "general"
+        mood = "intense" if ("!" in hook_text or score >= top_cut) else "general"
         cands.append(Highlight(
             start=start, end=end,
             title=_title_from(hook_text),

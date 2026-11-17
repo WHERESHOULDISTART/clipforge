@@ -28,6 +28,33 @@ def _reframe_filter(mode: str, w: int, h: int) -> str:
     return f"crop='min(iw,ih*{w}/{h})':'min(ih,iw*{h}/{w})',scale={w}:{h}"
 
 
+_NVENC: bool | None = None
+
+
+def _nvenc_available() -> bool:
+    """True if this ffmpeg has h264_nvenc AND it can actually open a GPU encoder."""
+    global _NVENC
+    if _NVENC is None:
+        try:
+            enc = subprocess.run(["ffmpeg", "-hide_banner", "-encoders"], capture_output=True, text=True).stdout
+            if "h264_nvenc" not in enc:
+                _NVENC = False
+            else:
+                probe = subprocess.run(
+                    ["ffmpeg", "-v", "error", "-f", "lavfi", "-i", "color=black:s=256x256:d=0.2",
+                     "-c:v", "h264_nvenc", "-f", "null", "-"], capture_output=True, text=True, timeout=30)
+                _NVENC = probe.returncode == 0
+        except Exception:
+            _NVENC = False
+    return _NVENC
+
+
+def _video_codec_args(gpu: bool) -> list[str]:
+    if gpu:
+        return ["-c:v", "h264_nvenc", "-preset", "p4", "-rc", "vbr", "-cq", "21", "-b:v", "0"]
+    return ["-c:v", "libx264", "-preset", "veryfast", "-crf", "20"]
+
+
 def _ass_path_for_filter(p: Path) -> str:
     # ffmpeg filter args need ':' and '\' escaped, and the whole thing quoted.
     s = str(p.resolve()).replace("\\", "/").replace(":", "\\:")
@@ -55,18 +82,25 @@ def render_clip(source: Path, highlight: Highlight, transcript: Transcript, styl
         f"format=yuv420p"
     )
     duration = highlight.end - highlight.start
-    cmd = [
-        "ffmpeg", "-y", "-v", "error", "-stats",
-        "-ss", f"{highlight.start:.3f}", "-i", str(source), "-t", f"{duration:.3f}",
-        "-vf", vf,
-        "-c:v", "libx264", "-preset", "veryfast", "-crf", "20", "-r", "30",
-        "-c:a", "aac", "-b:a", "160k", "-ar", "48000",
-        "-movflags", "+faststart",
-        str(video_out),
-    ]
+    def build_cmd(gpu: bool) -> list[str]:
+        return [
+            "ffmpeg", "-y", "-v", "error",
+            "-ss", f"{highlight.start:.3f}", "-i", str(source), "-t", f"{duration:.3f}",
+            "-vf", vf,
+            *_video_codec_args(gpu), "-r", "30",
+            "-c:a", "aac", "-b:a", "160k", "-ar", "48000",
+            "-movflags", "+faststart",
+            str(video_out),
+        ]
+
     if progress:
         progress(0.0, f"Rendering clip {index}")
+    use_gpu = _nvenc_available()
+    cmd = build_cmd(use_gpu)
     proc = subprocess.run(cmd, capture_output=True, text=True)
+    if proc.returncode != 0 and use_gpu:  # GPU encoder hiccup -> CPU
+        cmd = build_cmd(False)
+        proc = subprocess.run(cmd, capture_output=True, text=True)
     if proc.returncode != 0:
         raise RuntimeError(f"ffmpeg failed for clip {index}:\n{' '.join(shlex.quote(c) for c in cmd)}\n{proc.stderr[-2000:]}")
 

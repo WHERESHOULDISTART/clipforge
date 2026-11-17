@@ -117,13 +117,13 @@ def build_ass(words: list[Word], style: CaptionStyle, clip_start: float, clip_en
 ScriptType: v4.00+
 PlayResX: {width}
 PlayResY: {height}
-WrapStyle: 2
+WrapStyle: 0
 ScaledBorderAndShadow: yes
 
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
 Style: Cap,{style.font},{style.font_size},{primary},{primary},{outline_c},{back_c},-1,0,0,0,100,100,{style.letter_spacing},0,{style.border_style},{style.outline},{style.shadow},2,60,60,{margin_v},1
-Style: Hook,{style.font},{int(style.font_size * 0.8)},{primary},{primary},{outline_c},{back_c},-1,0,0,0,100,100,{style.letter_spacing},0,1,{max(style.outline - 1, 2)},{style.shadow},8,80,80,{int(height * 0.12)},1
+Style: Hook,{style.font},{int(style.font_size * 0.72)},{primary},{primary},{outline_c},{back_c},-1,0,0,0,100,100,{style.letter_spacing},0,1,{max(style.outline - 1, 2)},{style.shadow},8,80,80,{int(height * 0.12)},1
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
