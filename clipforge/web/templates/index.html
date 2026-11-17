@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ClipForge</title>
+<link rel="stylesheet" href="/static/style.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✂️</text></svg>">
+</head>
+<body>
+<header class="top">
+  <div class="brand">
+    <span class="logo">✂️</span>
+    <div>
+      <h1>ClipForge</h1>
+      <p>YouTube link → viral clips with animated captions → post from your browser</p>
+    </div>
+  </div>
+  <span class="version">v{{ version }}</span>
+</header>
+
+<main>
+  <section class="card composer">
+    <form id="job-form">
+      <label class="field grow">
+        <span>YouTube URL <small>or a local file path</small></span>
+        <input id="source" name="source" type="text" placeholder="https://www.youtube.com/watch?v=…" autocomplete="off" required>
+      </label>
+
+      <div class="row">
+        <label class="field">
+          <span>Caption style</span>
+          <select id="style" name="style">
+            {% for s in styles %}
+            <option value="{{ s.id }}" {% if s.id == defaults.style %}selected{% endif %} title="{{ s.description }}">{{ s.name }} — {{ s.description }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <label class="field small">
+          <span>Clips</span>
+          <input id="clip_count" name="clip_count" type="number" min="1" max="20" value="{{ defaults.clip_count }}">
+        </label>
+        <label class="field small">
+          <span>Framing</span>
+          <select id="reframe" name="reframe">
+            <option value="">Style default</option>
+            <option value="crop">Center crop 9:16</option>
+            <option value="blur">Blurred background</option>
+            <option value="fit">Letterbox</option>
+          </select>
+        </label>
+        <button type="submit" class="primary" id="go">Make clips ⚡</button>
+      </div>
+    </form>
+  </section>
+
+  <section id="jobs"></section>
+</main>
+
+<template id="job-tpl">
+  <article class="card job">
+    <header class="job-head">
+      <div>
+        <h2 class="job-title"></h2>
+        <p class="job-source"></p>
+      </div>
+      <span class="badge status"></span>
+    </header>
+    <div class="progress"><div class="bar"></div></div>
+    <p class="job-message"></p>
+    <div class="clips"></div>
+  </article>
+</template>
+
+<template id="clip-tpl">
+  <div class="clip">
+    <div class="clip-media">
+      <video controls playsinline preload="metadata"></video>
+      <span class="score"></span>
+    </div>
+    <div class="clip-body">
+      <h3 class="clip-title"></h3>
+      <p class="clip-meta"></p>
+      <p class="clip-reason"></p>
+      <div class="tabs"></div>
+      <textarea class="caption" rows="6"></textarea>
+      <div class="actions">
+        <button class="ghost copy">Copy caption</button>
+        <a class="ghost download" download>Download MP4</a>
+        <button class="primary post">Open in browser →</button>
+      </div>
+      <p class="publish-status"></p>
+    </div>
+  </div>
+</template>
+
+<script>
+  window.PLATFORMS = {{ platforms | tojson }};
+</script>
+<script src="/static/app.js"></script>
+</body>
+</html>

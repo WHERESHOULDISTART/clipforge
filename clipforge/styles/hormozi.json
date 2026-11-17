@@ -1,0 +1,21 @@
+{
+  "name": "Hormozi",
+  "description": "Bold uppercase words, yellow pop on the spoken word, thick black outline.",
+  "font": "Poppins Black",
+  "font_file": "Poppins-Black.ttf",
+  "font_size": 100,
+  "uppercase": true,
+  "words_per_line": 3,
+  "max_line_seconds": 2.2,
+  "primary_color": "#FFFFFF",
+  "highlight_color": "#FFD400",
+  "outline_color": "#000000",
+  "outline": 7,
+  "shadow": 3,
+  "highlight_mode": "color",
+  "highlight_scale": 118,
+  "line_pop": true,
+  "position_y": 0.68,
+  "letter_spacing": 1,
+  "reframe": "crop"
+}

@@ -1,0 +1,22 @@
+{
+  "name": "Boxed",
+  "description": "Comic font, spoken word sits in a solid colored box.",
+  "font": "Bangers",
+  "font_file": "Bangers-Regular.ttf",
+  "font_size": 100,
+  "uppercase": true,
+  "words_per_line": 4,
+  "max_line_seconds": 2.4,
+  "primary_color": "#FFFFFF",
+  "highlight_color": "#FFFFFF",
+  "highlight_box_color": "#FF3B30",
+  "outline_color": "#000000",
+  "outline": 6,
+  "shadow": 2,
+  "highlight_mode": "box",
+  "highlight_scale": 108,
+  "line_pop": true,
+  "position_y": 0.7,
+  "letter_spacing": 3,
+  "reframe": "crop"
+}

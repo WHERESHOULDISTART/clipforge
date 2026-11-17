@@ -1,0 +1,23 @@
+{
+  "name": "Minimal",
+  "description": "Clean white text in a dark pill, current word underlined. Podcast / talking-head look.",
+  "font": "Poppins ExtraBold",
+  "font_file": "Poppins-ExtraBold.ttf",
+  "font_size": 64,
+  "uppercase": false,
+  "words_per_line": 5,
+  "max_line_seconds": 3.0,
+  "primary_color": "#FFFFFF",
+  "highlight_color": "#FFFFFF",
+  "outline_color": "#141414",
+  "back_color": "#141414",
+  "border_style": 4,
+  "outline": 14,
+  "shadow": 0,
+  "highlight_mode": "underline",
+  "highlight_scale": 100,
+  "line_pop": false,
+  "position_y": 0.78,
+  "letter_spacing": 0,
+  "reframe": "blur"
+}
