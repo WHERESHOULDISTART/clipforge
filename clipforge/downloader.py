@@ -85,7 +85,7 @@ def download(source: str, progress=None, max_seconds: float | None = None) -> Vi
     import yt_dlp  # imported lazily so local-file mode works without network
 
     url = normalize_url(source)
-    base_opts = {"noplaylist": True, "quiet": True, "no_warnings": True}
+    base_opts = {"noplaylist": True, "quiet": True, "no_warnings": True, "noprogress": True}
 
     # 1) Look before downloading: refuse live streams (they'd record forever)
     try:
