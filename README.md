@@ -31,10 +31,10 @@ There are two ways. **Option A** needs nothing installed and is the quickest way
 
 1. **Open the notebook.** Click the **Open in Colab** badge above. Sign in with any Google account.
 2. **Turn on the free GPU** (makes it ~10× faster). Menu **Runtime → Change runtime type → T4 GPU → Save**. Usually it's already selected.
-3. **Paste your link.** In step **2️⃣ Settings**, paste a YouTube link into `youtube_url`. Pick a video where **people are talking** — a podcast, interview, vlog, stream or lecture. Pure music videos can't be captioned.
-4. **Choose your look** (optional). Pick a `caption_style` (hormozi, mrbeast, neon, boxed, minimal), how many clips you want, and the framing.
+3. **Paste your link.** In step **2️⃣ Settings**, paste a YouTube link into `youtube_url`. Pick a video where **people are talking** — a podcast, interview, vlog, stream replay or lecture. Pure music videos can't be captioned, and streams that are **still live** can't be clipped until the replay is up. If YouTube blocks the download, tick **`upload_my_own_video`** and pick a video file from your computer instead.
+4. **Choose your look** (optional). Pick a `caption_style` (hormozi, mrbeast, neon, boxed, minimal), how many clips you want, and the framing. For long streams, **`minutes_to_use`** (default 60) only uses the first hour so it finishes in minutes — set it to `0` to use the whole video.
 5. **Run it.** Menu **Runtime → Run all**. Colab shows a warning that the notebook wasn't written by Google — that's normal for any notebook from GitHub; click **Run anyway**.
-6. **Wait ~2–5 minutes.** Step 1️⃣ installs ClipForge, step 3️⃣ prints progress: downloading → transcribing → finding the best moments → rendering.
+6. **Watch the progress.** Step 1️⃣ installs ClipForge (1–3 min) and tells you whether you got a GPU. Step 3️⃣ prints a timestamped line every few seconds: downloading → transcribing → finding the best moments → rendering each clip. With a GPU a short video takes about a minute; **without one it's 5–10× slower** (step 1️⃣ prints a ⚠️ NO GPU warning — see [Troubleshooting](#troubleshooting)).
 7. **Watch your clips** in step 4️⃣. Each one shows the video and a ready-made caption with hashtags.
 8. **Download.** Step 5️⃣ downloads a zip with every MP4, subtitle files, and `captions.md` with a caption for each platform.
 9. **Post.** Open TikTok / YouTube / Instagram / Facebook / X, upload the MP4 and paste the matching caption from `captions.md`.
@@ -194,6 +194,11 @@ Everything is an environment variable or a line in `.env` — see [`.env.example
 
 | Problem | Fix |
 |---|---|
+| **Colab: "⚠️ NO GPU"** | Runtime → Change runtime type → **T4 GPU** → Save, then Run all again. If Colab says no GPU is available, you've hit Google's free daily limit — wait a few hours, or keep going on CPU with a short video or a small `minutes_to_use`. |
+| **Colab: step 1 failed with `FileNotFoundError: nvidia-smi`** | You opened an old copy of the notebook. Click the **Open in Colab** badge again to get the fixed version. |
+| **"This stream is still live"** | Live streams can't be clipped while they're running. Wait until the stream ends and the replay (VOD) is on the channel, then paste the replay link. |
+| **"YouTube blocked the download"** | YouTube sometimes blocks Google's servers. Try again in a few minutes, or tick `upload_my_own_video` and upload the file. |
+| **It seems stuck** | Watch the timestamped lines in step 3️⃣ — if the time keeps going up, it's working. Long videos without a GPU take a while; lower `minutes_to_use`. |
 | **"No speech detected"** | The video needs people talking. Music-only or silent videos can't be captioned. |
 | **"Chromium for Playwright is not installed"** | Run `playwright install chromium` (with the `.venv` active). |
 | **`clipforge: command not found`** | Activate the environment first: `source .venv/bin/activate` (Windows: `.venv\Scripts\activate`). |
